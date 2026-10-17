@@ -231,10 +231,12 @@
                             <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Estilo Musical</label>
                             <select id="eventGenre" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none">
                                 <option value="Remember 90s/00s">Remember 90s/00s</option>
+                                <option value="Remember 80/90/00">Remember 80/90/00</option>
                                 <option value="Eurodance">Eurodance</option>
                                 <option value="Bakalao / Ruta">Bakalao / Ruta</option>
                                 <option value="Techno / Trance">Techno / Trance</option>
                                 <option value="Pop / Indie">Pop / Indie</option>
+                                <option value="Estilo Libre/Actual">Estilo Libre/Actual</option>
                                 <option value="Variado">Variado</option>
                             </select>
                         </div>
@@ -407,7 +409,8 @@
                 snapshot.forEach((docSnap) => {
                     allEvents.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                allEvents.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+                // Ordenar: fecha más actual / cercana primero (descendente)
+                allEvents.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
                 renderEvents();
                 startCountdowns();
             }, (error) => {
@@ -453,12 +456,22 @@
             }
         }
 
-        window.togglePaidStatus = async function(id, isPaid) {
-            try {
-                await updateDoc(doc(db, "events", id), { paid: isPaid });
-            } catch (err) {
-                alert("Error al actualizar el estado de cobro.");
-                console.error(err);
+        window.handlePaidToggle = async function(id, checkboxEl) {
+            const isChecked = checkboxEl.checked;
+            const message = isChecked 
+                ? "¿Estás seguro de marcar este evento como COBRADO?" 
+                : "¿Estás seguro de marcar este evento como PENDIENTE de cobro?";
+            
+            if (confirm(message)) {
+                try {
+                    await updateDoc(doc(db, "events", id), { paid: isChecked });
+                } catch (err) {
+                    alert("Error al actualizar el estado de cobro.");
+                    checkboxEl.checked = !isChecked;
+                    console.error(err);
+                }
+            } else {
+                checkboxEl.checked = !isChecked;
             }
         }
 
@@ -545,7 +558,6 @@
             doc.save("agenda-we-love-remember.pdf");
         }
 
-        // Función auxiliar para calcular el texto inicial de la cuenta atrás
         function getInitialCountdownText(dateStr, timeStr) {
             const eventTime = new Date(dateStr + 'T' + timeStr).getTime();
             const now = new Date().getTime();
@@ -664,7 +676,7 @@
                                 <div class="flex items-center justify-between px-1">
                                     <span class="text-slate-400 font-semibold"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Concluído</span>
                                     <label class="flex items-center space-x-2 cursor-pointer bg-slate-800 hover:bg-slate-700/80 px-2.5 py-1 rounded-lg border border-slate-700 transition-colors">
-                                        <input type="checkbox" ${ev.paid ? 'checked' : ''} onchange="togglePaidStatus('${ev.id}', this.checked)" class="w-4 h-4 text-pink-600 rounded focus:ring-pink-500 bg-slate-900 border-slate-700">
+                                        <input type="checkbox" ${ev.paid ? 'checked' : ''} onclick="handlePaidToggle('${ev.id}', this)" class="w-4 h-4 text-pink-600 rounded focus:ring-pink-500 bg-slate-900 border-slate-700">
                                         <span class="text-xs font-bold ${ev.paid ? 'text-emerald-400' : 'text-amber-400'}">${ev.paid ? 'Cobrado ✓' : 'Pendiente cobro'}</span>
                                     </label>
                                 </div>
