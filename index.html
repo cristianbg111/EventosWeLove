@@ -148,14 +148,19 @@
                     </div>
                 </div>
 
-                <!-- Resumen Financiero (Opción 1) -->
-                <div class="glass-card p-3 rounded-2xl flex items-center justify-between">
-                    <div>
-                        <p class="text-slate-400 text-[11px]">Cobros (Histor.)</p>
-                        <h3 id="financeSummary" class="text-sm font-bold text-emerald-400">0 / 0</h3>
+                <!-- Resumen Financiero con Botones de Filtro -->
+                <div class="glass-card p-3 rounded-2xl flex flex-col justify-between">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <p class="text-slate-400 text-[11px]">Control Cobros</p>
+                        <i class="fa-solid fa-wallet text-emerald-400 text-xs"></i>
                     </div>
-                    <div class="bg-emerald-500/10 text-emerald-400 p-2 rounded-xl">
-                        <i class="fa-solid fa-wallet text-sm"></i>
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button onclick="filterPayment('paid')" id="btnFilterPaid" class="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-lg py-1 px-1 text-[10px] font-bold transition-colors truncate" title="Ver solo cobrados">
+                            Cobrados (<span id="paidCount">0</span>)
+                        </button>
+                        <button onclick="filterPayment('pending')" id="btnFilterPending" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded-lg py-1 px-1 text-[10px] font-bold transition-colors truncate" title="Ver solo pendientes">
+                            Pend. (<span id="pendingCount">0</span>)
+                        </button>
                     </div>
                 </div>
 
@@ -171,7 +176,6 @@
                     </div>
                 </div>
 
-                <!-- Selector de Periodo por Fecha (Opción 3) -->
                 <div class="glass-card p-2 rounded-2xl flex items-center">
                     <div class="w-full">
                         <label class="block text-[10px] text-slate-400 uppercase font-bold mb-0.5">Periodo</label>
@@ -330,6 +334,7 @@
         const MASTER_PASSWORD = "remember2026";
         let allEvents = [];
         let currentTab = 'upcoming';
+        let paymentFilter = 'all'; // 'all', 'paid', 'pending'
         let countdownInterval = null;
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -419,6 +424,9 @@
 
         window.switchTab = function(tab) {
             currentTab = tab;
+            paymentFilter = 'all'; // Resetear filtro de cobros al cambiar de pestaña
+            updatePaymentFilterButtons();
+            
             const btnUpcoming = document.getElementById('tabUpcoming');
             const btnPast = document.getElementById('tabPast');
 
@@ -432,6 +440,35 @@
             renderEvents();
         }
 
+        window.filterPayment = function(type) {
+            if (currentTab !== 'past') {
+                switchTab('past'); // Cambiar automáticamente a Concluídos si se pulsa el filtro
+            }
+            if (paymentFilter === type) {
+                paymentFilter = 'all'; // Desactivar si se vuelve a pulsar
+            } else {
+                paymentFilter = type;
+            }
+            updatePaymentFilterButtons();
+            renderEvents();
+        }
+
+        function updatePaymentFilterButtons() {
+            const btnPaid = document.getElementById('btnFilterPaid');
+            const btnPending = document.getElementById('btnFilterPending');
+
+            if (paymentFilter === 'paid') {
+                btnPaid.className = "bg-emerald-500 text-slate-950 font-bold rounded-lg py-1 px-1 text-[10px] transition-colors truncate shadow-md shadow-emerald-500/30";
+                btnPending.className = "bg-slate-800/80 text-amber-400 border border-amber-500/30 rounded-lg py-1 px-1 text-[10px] font-semibold transition-colors truncate";
+            } else if (paymentFilter === 'pending') {
+                btnPending.className = "bg-amber-500 text-slate-950 font-bold rounded-lg py-1 px-1 text-[10px] transition-colors truncate shadow-md shadow-amber-500/30";
+                btnPaid.className = "bg-slate-800/80 text-emerald-400 border border-emerald-500/30 rounded-lg py-1 px-1 text-[10px] font-semibold transition-colors truncate";
+            } else {
+                btnPaid.className = "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 rounded-lg py-1 px-1 text-[10px] font-bold transition-colors truncate";
+                btnPending.className = "bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 rounded-lg py-1 px-1 text-[10px] font-bold transition-colors truncate";
+            }
+        }
+
         function initFirebaseListener() {
             const q = query(collection(db, "events"), orderBy("date", "asc"));
             onSnapshot(q, (snapshot) => {
@@ -439,7 +476,6 @@
                 snapshot.forEach((docSnap) => {
                     allEvents.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                allEvents.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
                 renderEvents();
                 startCountdowns();
             }, (error) => {
@@ -619,7 +655,8 @@
             const emptyDesc = document.getElementById('emptyDesc');
             const upcomingCountEl = document.getElementById('upcomingCount');
             const pastCountEl = document.getElementById('pastCount');
-            const financeSummaryEl = document.getElementById('financeSummary');
+            const paidCountEl = document.getElementById('paidCount');
+            const pendingCountEl = document.getElementById('pendingCount');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const selectedAuthor = document.getElementById('authorFilter').value;
             const selectedPeriod = document.getElementById('periodFilter').value;
@@ -630,21 +667,37 @@
             const upcomingList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() >= now);
             const pastList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() < now);
 
+            // ORDENACIÓN: 
+            // - Próximos: de fecha más cercana a más lejana (ascendente)
+            upcomingList.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+            // - Pasados: de más reciente a más antiguo (descendente)
+            pastList.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+
             upcomingCountEl.innerText = upcomingList.length;
             pastCountEl.innerText = pastList.length;
 
-            // Calcular Resumen Financiero (Opción 1)
             const paidCount = pastList.filter(ev => ev.paid === true).length;
-            financeSummaryEl.innerText = `${paidCount} / ${pastList.length} Cobrados`;
+            const pendingCount = pastList.length - paidCount;
+            paidCountEl.innerText = paidCount;
+            pendingCountEl.innerText = pendingCount;
 
             let activeList = currentTab === 'upcoming' ? upcomingList : pastList;
+
+            // Filtro por botones de cobro en pestaña Pasados
+            if (currentTab === 'past') {
+                if (paymentFilter === 'paid') {
+                    activeList = activeList.filter(ev => ev.paid === true);
+                } else if (paymentFilter === 'pending') {
+                    activeList = activeList.filter(ev => ev.paid !== true);
+                }
+            }
 
             // Filtro por Autor
             if (selectedAuthor) {
                 activeList = activeList.filter(ev => ev.author === selectedAuthor);
             }
 
-            // Filtro por Periodo de Fecha (Opción 3)
+            // Filtro por Periodo de Fecha
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth();
             const currentYear = currentDate.getFullYear();
@@ -679,8 +732,8 @@
                     emptyTitle.innerText = "No hay eventos próximos";
                     emptyDesc.innerText = "Añade una nueva fecha a la agenda usando el botón superior.";
                 } else {
-                    emptyTitle.innerText = "No hay eventos concluídos";
-                    emptyDesc.innerText = "Los eventos pasarán aquí automáticamente una vez superada su fecha.";
+                    emptyTitle.innerText = "No hay eventos en este filtro";
+                    emptyDesc.innerText = "Prueba a cambiar el filtro de cobros o la búsqueda seleccionada.";
                 }
                 return;
             }
