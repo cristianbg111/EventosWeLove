@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- jsPDF para exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -92,7 +94,11 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                    <button onclick="openModal()" class="w-full sm:w-auto bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-pink-500/25 transition-all transform active:scale-95 flex items-center justify-center space-x-2 text-sm">
+                    <button onclick="exportToPDF()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold px-3.5 py-2.5 rounded-xl shadow-lg shadow-cyan-600/20 transition-all text-sm flex items-center space-x-1.5" title="Exportar Agenda a PDF">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span class="hidden sm:inline">Exportar PDF</span>
+                    </button>
+                    <button onclick="openModalForCreate()" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-pink-500/25 transition-all transform active:scale-95 flex items-center justify-center space-x-2 text-sm">
                         <i class="fa-solid fa-plus-circle"></i>
                         <span>Añadir Evento</span>
                     </button>
@@ -165,11 +171,11 @@
             </div>
         </main>
 
-        <!-- MODAL NUEVO EVENTO -->
+        <!-- MODAL NUEVO / EDITAR EVENTO -->
         <div id="eventModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
             <div class="glass-card w-full max-w-lg rounded-2xl p-5 sm:p-6 border border-slate-700 shadow-2xl relative my-auto">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg sm:text-xl font-bold text-white flex items-center space-x-2">
+                    <h3 id="modalTitle" class="text-lg sm:text-xl font-bold text-white flex items-center space-x-2">
                         <i class="fa-solid fa-calendar-plus text-pink-500"></i>
                         <span>Nuevo Evento We Love</span>
                     </h3>
@@ -179,6 +185,7 @@
                 </div>
 
                 <form id="eventForm" onsubmit="saveEvent(event)" class="space-y-3.5">
+                    <input type="hidden" id="eventId">
                     <div>
                         <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Nombre del Evento / Fiesta *</label>
                         <input type="text" id="eventName" required placeholder="Ej: We Love The Remember Festival" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-pink-500">
@@ -219,9 +226,9 @@
                     </div>
 
                     <div>
-                        <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Añadido por *</label>
+                        <label class="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">Añadido / Editado por *</label>
                         <select id="eventAuthor" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-pink-500">
-                            <option value="" disabled selected>Selecciona quién añade el evento...</option>
+                            <option value="" disabled selected>Selecciona quién realiza la acción...</option>
                             <option value="Jhon">Jhon</option>
                             <option value="Cristian">Cristian</option>
                             <option value="Jesús">Jesús</option>
@@ -249,9 +256,8 @@
     <!-- FIREBASE & LOGIC SCRIPT -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Configuración de Firebase del usuario
         const firebaseConfig = {
             apiKey: "AIzaSyAC5uP7EnDfa99OdP8w5J-6bByCGqOVjL0",
             authDomain: "agendawelove-54238.firebaseapp.com",
@@ -303,13 +309,34 @@
             location.reload();
         }
 
-        window.openModal = function() {
+        window.openModalForCreate = function() {
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-calendar-plus text-pink-500"></i><span>Nuevo Evento We Love</span>';
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
+            document.getElementById('eventModal').classList.remove('hidden');
+        }
+
+        window.openModalForEdit = function(id) {
+            const ev = allEvents.find(e => e.id === id);
+            if (!ev) return;
+
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-pink-500"></i><span>Editar Evento We Love</span>';
+            document.getElementById('eventId').value = ev.id;
+            document.getElementById('eventName').value = ev.name;
+            document.getElementById('eventDate').value = ev.date;
+            document.getElementById('eventTime').value = ev.time;
+            document.getElementById('eventLocation').value = ev.location;
+            document.getElementById('eventGenre').value = ev.genre;
+            document.getElementById('eventDescription').value = ev.description || '';
+            document.getElementById('eventAuthor').value = ev.author || '';
+
             document.getElementById('eventModal').classList.remove('hidden');
         }
 
         window.closeModal = function() {
             document.getElementById('eventModal').classList.add('hidden');
             document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
         }
 
         window.switchTab = function(tab) {
@@ -327,7 +354,6 @@
             renderEvents();
         }
 
-        // Sincronización en Tiempo Real con Firestore
         function initFirebaseListener() {
             const q = query(collection(db, "events"), orderBy("date", "asc"));
             onSnapshot(q, (snapshot) => {
@@ -335,7 +361,6 @@
                 snapshot.forEach((docSnap) => {
                     allEvents.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                // Ordenar por fecha y hora combinadas
                 allEvents.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
                 renderEvents();
                 startCountdowns();
@@ -347,10 +372,12 @@
         window.saveEvent = async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
+            const eventId = document.getElementById('eventId').value;
+            
             submitBtn.innerText = "Guardando...";
             submitBtn.disabled = true;
 
-            const newEvent = {
+            const eventData = {
                 name: document.getElementById('eventName').value,
                 date: document.getElementById('eventDate').value,
                 time: document.getElementById('eventTime').value,
@@ -358,11 +385,16 @@
                 genre: document.getElementById('eventGenre').value,
                 description: document.getElementById('eventDescription').value,
                 author: document.getElementById('eventAuthor').value,
-                createdAt: Date.now()
+                updatedAt: Date.now()
             };
 
             try {
-                await addDoc(collection(db, "events"), newEvent);
+                if (eventId) {
+                    await updateDoc(doc(db, "events", eventId), eventData);
+                } else {
+                    eventData.createdAt = Date.now();
+                    await addDoc(collection(db, "events"), eventData);
+                }
                 closeModal();
             } catch (err) {
                 alert("Error al guardar el evento en la nube. Comprueba tu conexión.");
@@ -382,6 +414,78 @@
                     console.error(err);
                 }
             }
+        }
+
+        // EXPORTAR A PDF CON JAVASCRIPT (jsPDF)
+        window.exportToPDF = function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const now = new Date().getTime();
+
+            // Título del PDF
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(18);
+            doc.setTextColor(236, 72, 153); // Color Rosa We Love
+            doc.text("EVENTOS WE LOVE THE REMEMBER", 14, 20);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Fecha de exportacion: ${new Date().toLocaleDateString('es-ES')} - Total eventos: ${allEvents.length}`, 14, 27);
+
+            let y = 35;
+
+            if (allEvents.length === 0) {
+                doc.text("No hay eventos registrados en la agenda.", 14, y);
+                doc.save("agenda-we-love-remember.pdf");
+                return;
+            }
+
+            allEvents.forEach((ev, index) => {
+                const eventTime = new Date(ev.date + 'T' + ev.time).getTime();
+                const isPast = eventTime < now;
+                const statusText = isPast ? "[ CONCLUIDO / FINALIZADO ]" : "[ PENDIENTE ]";
+
+                // Comprobar si necesitamos salto de página
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(11);
+                doc.setTextColor(isPast ? 120 : 30, isPast ? 120 : 41, isPast ? 120 : 59);
+                doc.text(`${index + 1}. ${ev.name}`, 14, y);
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(9);
+                doc.setTextColor(isPast ? 150 : 219, isPast ? 150 : 39, isPast ? 150 : 119);
+                doc.text(statusText, 150, y);
+
+                y += 6;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(9);
+                doc.setTextColor(80, 80, 80);
+                
+                const formattedDate = new Date(ev.date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                doc.text(`Fecha y Hora: ${formattedDate} a las ${ev.time} h`, 18, y);
+                y += 5;
+                doc.text(`Ubicacion: ${ev.location} | Estilo: ${ev.genre}`, 18, y);
+                y += 5;
+                if (ev.description) {
+                    doc.text(`Detalles: ${ev.description}`, 18, y);
+                    y += 5;
+                }
+                doc.text(`Añadido por: ${ev.author}`, 18, y);
+                y += 8;
+
+                // Línea divisoria suave
+                doc.setDrawColor(220, 220, 220);
+                doc.line(14, y - 4, 196, y - 4);
+                y += 2;
+            });
+
+            doc.save("agenda-we-love-remember.pdf");
         }
 
         function renderEvents() {
@@ -442,10 +546,16 @@
                             <span class="${isPast ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-pink-500/10 text-pink-400 border-pink-500/20'} border text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
                                 ${ev.genre}
                             </span>
-                            <button onclick="deleteEvent('${ev.id}')" class="bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors px-2 py-1 rounded-lg text-xs flex items-center space-x-1" title="Eliminar evento">
-                                <i class="fa-solid fa-trash-can text-[11px]"></i>
-                                <span>Suprimir</span>
-                            </button>
+                            <div class="flex items-center space-x-1.5">
+                                <button onclick="openModalForEdit('${ev.id}')" class="bg-slate-800/80 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-slate-700 transition-colors px-2 py-1 rounded-lg text-xs flex items-center space-x-1" title="Editar evento">
+                                    <i class="fa-solid fa-pen text-[11px]"></i>
+                                    <span>Editar</span>
+                                </button>
+                                <button onclick="deleteEvent('${ev.id}')" class="bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors px-2 py-1 rounded-lg text-xs flex items-center space-x-1" title="Eliminar evento">
+                                    <i class="fa-solid fa-trash-can text-[11px]"></i>
+                                    <span>Suprimir</span>
+                                </button>
+                            </div>
                         </div>
                         
                         <h3 class="text-base sm:text-lg font-bold text-white mb-2 leading-snug">
@@ -486,7 +596,7 @@
                     </div>
 
                     <div class="flex items-center justify-between pt-2.5 border-t border-slate-800/80 text-[11px] text-slate-500">
-                        <span>Añadido por: <strong class="text-pink-400">${ev.author}</strong></span>
+                        <span>Actualizado por: <strong class="text-pink-400">${ev.author}</strong></span>
                         <span class="${isPast ? 'text-slate-400' : 'text-emerald-400'}"><i class="fa-solid fa-circle text-[5px] mr-1"></i> ${isPast ? 'Histórico' : 'Nube Sincronizada'}</span>
                     </div>
                 `;
