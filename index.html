@@ -18,6 +18,15 @@
                 extend: {
                     fontFamily: {
                         sans: ['Outfit', 'sans-serif'],
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                            '50%': { opacity: 0.7, transform: 'scale(1.02)' },
+                        }
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
@@ -118,32 +127,43 @@
         <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
             
             <!-- STATS & FILTERS BAR -->
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-5">
-                <div class="glass-card p-3.5 rounded-2xl flex items-center justify-between">
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-5">
+                <div class="glass-card p-3 rounded-2xl flex items-center justify-between">
                     <div>
-                        <p class="text-slate-400 text-xs">Próximos</p>
-                        <h3 id="upcomingCount" class="text-xl font-bold text-cyan-400">0</h3>
+                        <p class="text-slate-400 text-[11px]">Próximos</p>
+                        <h3 id="upcomingCount" class="text-lg font-bold text-cyan-400">0</h3>
                     </div>
-                    <div class="bg-cyan-500/10 text-cyan-400 p-2.5 rounded-xl">
-                        <i class="fa-solid fa-bolt text-base"></i>
+                    <div class="bg-cyan-500/10 text-cyan-400 p-2 rounded-xl">
+                        <i class="fa-solid fa-bolt text-sm"></i>
                     </div>
                 </div>
 
-                <div class="glass-card p-3.5 rounded-2xl flex items-center justify-between">
+                <div class="glass-card p-3 rounded-2xl flex items-center justify-between">
                     <div>
-                        <p class="text-slate-400 text-xs">Concluídos</p>
-                        <h3 id="pastCount" class="text-xl font-bold text-slate-400">0</h3>
+                        <p class="text-slate-400 text-[11px]">Concluídos</p>
+                        <h3 id="pastCount" class="text-lg font-bold text-slate-400">0</h3>
                     </div>
-                    <div class="bg-slate-700/30 text-slate-400 p-2.5 rounded-xl">
-                        <i class="fa-solid fa-box-archive text-base"></i>
+                    <div class="bg-slate-700/30 text-slate-400 p-2 rounded-xl">
+                        <i class="fa-solid fa-box-archive text-sm"></i>
                     </div>
                 </div>
 
-                <div class="glass-card p-2.5 rounded-2xl flex items-center">
+                <!-- Resumen Financiero (Opción 1) -->
+                <div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <p class="text-slate-400 text-[11px]">Cobros (Histor.)</p>
+                        <h3 id="financeSummary" class="text-sm font-bold text-emerald-400">0 / 0</h3>
+                    </div>
+                    <div class="bg-emerald-500/10 text-emerald-400 p-2 rounded-xl">
+                        <i class="fa-solid fa-wallet text-sm"></i>
+                    </div>
+                </div>
+
+                <div class="glass-card p-2 rounded-2xl flex items-center">
                     <div class="w-full">
-                        <label class="block text-[10px] text-slate-400 uppercase font-bold mb-0.5">Filtrar por Autor</label>
+                        <label class="block text-[10px] text-slate-400 uppercase font-bold mb-0.5">Autor</label>
                         <select id="authorFilter" onchange="renderEvents()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none">
-                            <option value="">Todos los autores</option>
+                            <option value="">Todos</option>
                             <option value="Jhon">Jhon</option>
                             <option value="Cristian">Cristian</option>
                             <option value="Jesús">Jesús</option>
@@ -151,16 +171,26 @@
                     </div>
                 </div>
 
-                <div class="glass-card p-2.5 rounded-2xl flex items-center">
-                    <div class="relative w-full">
-                        <label class="block text-[10px] text-slate-400 uppercase font-bold mb-0.5">Búsqueda libre</label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400">
-                                <i class="fa-solid fa-search text-xs"></i>
-                            </span>
-                            <input type="text" id="searchInput" oninput="renderEvents()" placeholder="Sala, artista..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none">
-                        </div>
+                <!-- Selector de Periodo por Fecha (Opción 3) -->
+                <div class="glass-card p-2 rounded-2xl flex items-center">
+                    <div class="w-full">
+                        <label class="block text-[10px] text-slate-400 uppercase font-bold mb-0.5">Periodo</label>
+                        <select id="periodFilter" onchange="renderEvents()" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white focus:outline-none">
+                            <option value="all">Todo el tiempo</option>
+                            <option value="month">Este mes</option>
+                            <option value="year">Este año</option>
+                        </select>
                     </div>
+                </div>
+            </div>
+
+            <!-- BÚSQUEDA LIBRE -->
+            <div class="glass-card p-3 rounded-2xl mb-5 flex items-center">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search text-xs"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="renderEvents()" placeholder="Buscar por sala, artista, estilo o detalles..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none">
                 </div>
             </div>
 
@@ -409,7 +439,6 @@
                 snapshot.forEach((docSnap) => {
                     allEvents.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                // Ordenar: fecha más actual / cercana primero (descendente)
                 allEvents.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
                 renderEvents();
                 startCountdowns();
@@ -575,6 +604,14 @@
             return `${days}d ${hours}h ${minutes}m <span class="text-pink-400">${seconds}s</span>`;
         }
 
+        function isToday(dateStr) {
+            const today = new Date();
+            const evDate = new Date(dateStr + 'T00:00:00');
+            return evDate.getDate() === today.getDate() &&
+                   evDate.getMonth() === today.getMonth() &&
+                   evDate.getFullYear() === today.getFullYear();
+        }
+
         function renderEvents() {
             const container = document.getElementById('eventsContainer');
             const emptyState = document.getElementById('emptyState');
@@ -582,23 +619,49 @@
             const emptyDesc = document.getElementById('emptyDesc');
             const upcomingCountEl = document.getElementById('upcomingCount');
             const pastCountEl = document.getElementById('pastCount');
+            const financeSummaryEl = document.getElementById('financeSummary');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const selectedAuthor = document.getElementById('authorFilter').value;
+            const selectedPeriod = document.getElementById('periodFilter').value;
 
             const now = new Date().getTime();
 
+            // Separar próximos y pasados
             const upcomingList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() >= now);
             const pastList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() < now);
 
             upcomingCountEl.innerText = upcomingList.length;
             pastCountEl.innerText = pastList.length;
 
+            // Calcular Resumen Financiero (Opción 1)
+            const paidCount = pastList.filter(ev => ev.paid === true).length;
+            financeSummaryEl.innerText = `${paidCount} / ${pastList.length} Cobrados`;
+
             let activeList = currentTab === 'upcoming' ? upcomingList : pastList;
 
+            // Filtro por Autor
             if (selectedAuthor) {
                 activeList = activeList.filter(ev => ev.author === selectedAuthor);
             }
 
+            // Filtro por Periodo de Fecha (Opción 3)
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth();
+            const currentYear = currentDate.getFullYear();
+
+            if (selectedPeriod === 'month') {
+                activeList = activeList.filter(ev => {
+                    const evDate = new Date(ev.date + 'T00:00:00');
+                    return evDate.getMonth() === currentMonth && evDate.getFullYear() === currentYear;
+                });
+            } else if (selectedPeriod === 'year') {
+                activeList = activeList.filter(ev => {
+                    const evDate = new Date(ev.date + 'T00:00:00');
+                    return evDate.getFullYear() === currentYear;
+                });
+            }
+
+            // Búsqueda libre
             if (searchTerm) {
                 activeList = activeList.filter(ev => 
                     ev.name.toLowerCase().includes(searchTerm) ||
@@ -630,16 +693,20 @@
                 const formattedDate = dateObj.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
                 const isPast = currentTab === 'past';
                 const initialCountdown = getInitialCountdownText(ev.date, ev.time);
+                const isEventToday = !isPast && isToday(ev.date);
 
                 const card = document.createElement('div');
-                card.className = `glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between border ${isPast ? 'border-slate-800 opacity-90' : 'border-slate-700/60'} transition-all duration-300 shadow-xl`;
+                card.className = `glass-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between border transition-all duration-300 shadow-xl ${isEventToday ? 'border-pink-500 shadow-pink-500/20 animate-pulse-glow' : (isPast ? 'border-slate-800 opacity-90' : 'border-slate-700/60')}`;
                 
                 card.innerHTML = `
                     <div>
                         <div class="flex justify-between items-start gap-2 mb-2.5">
-                            <span class="${isPast ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-pink-500/10 text-pink-400 border-pink-500/20'} border text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
-                                ${ev.genre}
-                            </span>
+                            <div class="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                                <span class="${isPast ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-pink-500/10 text-pink-400 border-pink-500/20'} border text-[11px] font-semibold px-2.5 py-0.5 rounded-full">
+                                    ${ev.genre}
+                                </span>
+                                ${isEventToday ? '<span class="bg-pink-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider animate-bounce"><i class="fa-solid fa-fire mr-1"></i> ¡Es Hoy!</span>' : ''}
+                            </div>
                             <div class="flex items-center space-x-1.5">
                                 <button onclick="openModalForEdit('${ev.id}')" class="bg-slate-800/80 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-slate-700 transition-colors px-2 py-1 rounded-lg text-xs flex items-center space-x-1" title="Editar evento">
                                     <i class="fa-solid fa-pen text-[11px]"></i>
