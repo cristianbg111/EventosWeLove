@@ -334,7 +334,7 @@
         const MASTER_PASSWORD = "remember2026";
         let allEvents = [];
         let currentTab = 'upcoming';
-        let paymentFilter = 'all'; // 'all', 'paid', 'pending'
+        let paymentFilter = 'all';
         let countdownInterval = null;
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -424,7 +424,7 @@
 
         window.switchTab = function(tab) {
             currentTab = tab;
-            paymentFilter = 'all'; // Resetear filtro de cobros al cambiar de pestaña
+            paymentFilter = 'all';
             updatePaymentFilterButtons();
             
             const btnUpcoming = document.getElementById('tabUpcoming');
@@ -442,10 +442,10 @@
 
         window.filterPayment = function(type) {
             if (currentTab !== 'past') {
-                switchTab('past'); // Cambiar automáticamente a Concluídos si se pulsa el filtro
+                switchTab('past');
             }
             if (paymentFilter === type) {
-                paymentFilter = 'all'; // Desactivar si se vuelve a pulsar
+                paymentFilter = 'all';
             } else {
                 paymentFilter = type;
             }
@@ -551,33 +551,41 @@
             }
         }
 
+        // EXPORTAR A PDF (INCLUYE TODOS LOS EVENTOS: PENDIENTES DE CUALQUIER AÑO Y CONCLUIDOS)
         window.exportToPDF = function() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const now = new Date().getTime();
 
+            // Copiar y ordenar todos los eventos cronológicamente (más cercano primero)
+            const eventsForPDF = [...allEvents].sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+
             doc.setFont("helvetica", "bold");
             doc.setFontSize(18);
             doc.setTextColor(236, 72, 153);
-            doc.text("EVENTOS WE LOVE THE REMEMBER", 14, 20);
+            doc.text("AGENDA GLOBAL - WE LOVE THE REMEMBER", 14, 20);
 
             doc.setFont("helvetica", "normal");
             doc.setFontSize(10);
             doc.setTextColor(100, 100, 100);
-            doc.text(`Fecha de exportación: ${new Date().toLocaleDateString('es-ES')} - Total eventos: ${allEvents.length}`, 14, 27);
+            doc.text(`Fecha de exportación: ${new Date().toLocaleDateString('es-ES')} - Total eventos: ${eventsForPDF.length}`, 14, 27);
 
             let y = 35;
 
-            if (allEvents.length === 0) {
+            if (eventsForPDF.length === 0) {
                 doc.text("No hay eventos registrados en la agenda.", 14, y);
                 doc.save("agenda-we-love-remember.pdf");
                 return;
             }
 
-            allEvents.forEach((ev, index) => {
+            eventsForPDF.forEach((ev, index) => {
                 const eventTime = new Date(ev.date + 'T' + ev.time).getTime();
                 const isPast = eventTime < now;
-                const statusText = isPast ? (ev.paid ? "[ CONCLUIDO - COBRADO ]" : "[ CONCLUIDO - PENDIENTE COBRO ]") : "[ PENDIENTE ]";
+                
+                let statusText = "[ PENDIENTE ]";
+                if (isPast) {
+                    statusText = ev.paid ? "[ CONCLUIDO - COBRADO ]" : "[ CONCLUIDO - PENDIENTE COBRO ]";
+                }
 
                 if (y > 270) {
                     doc.addPage();
@@ -590,9 +598,9 @@
                 doc.text(`${index + 1}. ${ev.name}`, 14, y);
 
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(8);
-                doc.setTextColor(isPast ? 150 : 219, isPast ? 150 : 39, isPast ? 150 : 119);
-                doc.text(statusText, 135, y);
+                doc.setFontSize(7.5);
+                doc.setTextColor(isPast ? 150 : 6, isPast ? 150 : 182, isPast ? 150 : 212);
+                doc.text(statusText, 130, y);
 
                 y += 6;
                 doc.setFont("helvetica", "normal");
@@ -663,14 +671,11 @@
 
             const now = new Date().getTime();
 
-            // Separar próximos y pasados
             const upcomingList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() >= now);
             const pastList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() < now);
 
-            // ORDENACIÓN: 
-            // - Próximos: de fecha más cercana a más lejana (ascendente)
+            // Ordenación
             upcomingList.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
-            // - Pasados: de más reciente a más antiguo (descendente)
             pastList.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
 
             upcomingCountEl.innerText = upcomingList.length;
@@ -683,7 +688,6 @@
 
             let activeList = currentTab === 'upcoming' ? upcomingList : pastList;
 
-            // Filtro por botones de cobro en pestaña Pasados
             if (currentTab === 'past') {
                 if (paymentFilter === 'paid') {
                     activeList = activeList.filter(ev => ev.paid === true);
@@ -692,12 +696,10 @@
                 }
             }
 
-            // Filtro por Autor
             if (selectedAuthor) {
                 activeList = activeList.filter(ev => ev.author === selectedAuthor);
             }
 
-            // Filtro por Periodo de Fecha
             const currentDate = new Date();
             const currentMonth = currentDate.getMonth();
             const currentYear = currentDate.getFullYear();
@@ -714,7 +716,6 @@
                 });
             }
 
-            // Búsqueda libre
             if (searchTerm) {
                 activeList = activeList.filter(ev => 
                     ev.name.toLowerCase().includes(searchTerm) ||
