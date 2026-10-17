@@ -148,7 +148,6 @@
                     </div>
                 </div>
 
-                <!-- Resumen Financiero con Botones de Filtro -->
                 <div class="glass-card p-3 rounded-2xl flex flex-col justify-between">
                     <div class="flex justify-between items-center mb-1.5">
                         <p class="text-slate-400 text-[11px]">Control Cobros</p>
@@ -332,6 +331,7 @@
         const db = getFirestore(app);
 
         const MASTER_PASSWORD = "remember2026";
+        const DELETE_PASSWORD = "852456";
         let allEvents = [];
         let currentTab = 'upcoming';
         let paymentFilter = 'all';
@@ -540,8 +540,22 @@
             }
         }
 
-        window.deleteEvent = async function(id) {
-            if (confirm('¿Estás seguro de que deseas eliminar este evento permanentemente de la agenda en la nube?')) {
+        // ELIMINAR CON CONTRASEÑA O BLOQUEO EN CONCLUIDOS
+        window.deleteEvent = async function(id, isPastEvent) {
+            if (isPastEvent) {
+                alert("Los eventos concluídos/finalizados no se pueden suprimir por seguridad.");
+                return;
+            }
+
+            const passwordInput = prompt("Introduce la contraseña de eliminación (852456):");
+            if (passwordInput === null) return; // Si cancela
+
+            if (passwordInput !== DELETE_PASSWORD) {
+                alert("Contraseña incorrecta. No se puede eliminar el evento.");
+                return;
+            }
+
+            if (confirm('¿Estás totalmente seguro de deseas eliminar este evento?')) {
                 try {
                     await deleteDoc(doc(db, "events", id));
                 } catch (err) {
@@ -551,13 +565,11 @@
             }
         }
 
-        // EXPORTAR A PDF (INCLUYE TODOS LOS EVENTOS: PENDIENTES DE CUALQUIER AÑO Y CONCLUIDOS)
         window.exportToPDF = function() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const now = new Date().getTime();
 
-            // Copiar y ordenar todos los eventos cronológicamente (más cercano primero)
             const eventsForPDF = [...allEvents].sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
 
             doc.setFont("helvetica", "bold");
@@ -674,7 +686,6 @@
             const upcomingList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() >= now);
             const pastList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() < now);
 
-            // Ordenación
             upcomingList.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
             pastList.sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
 
@@ -766,9 +777,9 @@
                                     <i class="fa-solid fa-pen text-[11px]"></i>
                                     <span>Editar</span>
                                 </button>
-                                <button onclick="deleteEvent('${ev.id}')" class="bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors px-2 py-1 rounded-lg text-xs flex items-center space-x-1" title="Eliminar evento">
+                                <button onclick="deleteEvent('${ev.id}', ${isPast})" class="bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors px-2 py-1 rounded-lg text-xs flex items-center space-x-1" title="${isPast ? 'Los eventos concluidos no se pueden suprimir' : 'Eliminar evento'}">
                                     <i class="fa-solid fa-trash-can text-[11px]"></i>
-                                    <span>Suprimir</span>
+                                    <span>${isPast ? 'Bloqueado' : 'Suprimir'}</span>
                                 </button>
                             </div>
                         </div>
