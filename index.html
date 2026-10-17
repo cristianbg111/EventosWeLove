@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eventos We Love The Remember - Agenda Remember & Musical</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            pink: '#ec4899',
+                            purple: '#8b5cf6',
+                            cyan: '#06b6d4',
+                            dark: '#0f172a',
+                            card: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .neon-glow {
+            text-shadow: 0 0 10px rgba(236, 72, 153, 0.6), 0 0 20px rgba(139, 92, 246, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- HEADER -->
+    <header class="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-r from-pink-500 to-purple-600 p-2.5 rounded-xl shadow-lg shadow-pink-500/30">
+                    <i class="fa-solid fa-compact-disc text-white text-xl animate-spin" style="animation-duration: 8s;"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-wider bg-gradient-to-r from-pink-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                        EVENTOS WE LOVE THE REMEMBER
+                    </h1>
+                    <p class="text-xs text-slate-400">Agenda global Remember & Electronic Music</p>
+                </div>
+            </div>
+            <button onclick="openModal()" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-pink-500/25 transition-all transform hover:scale-105 flex items-center space-x-2">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>Añadir Evento</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+        
+        <!-- STATS & SEARCH BAR -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Próximos Eventos</p>
+                    <h3 id="upcomingCount" class="text-2xl font-bold text-cyan-400">0</h3>
+                </div>
+                <div class="bg-cyan-500/10 text-cyan-400 p-3 rounded-xl">
+                    <i class="fa-solid fa-bolt text-xl"></i>
+                </div>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Eventos Concluídos</p>
+                    <h3 id="pastCount" class="text-2xl font-bold text-slate-400">0</h3>
+                </div>
+                <div class="bg-slate-700/30 text-slate-400 p-3 rounded-xl">
+                    <i class="fa-solid fa-box-archive text-xl"></i>
+                </div>
+            </div>
+
+            <div class="glass-card p-4 rounded-2xl flex items-center">
+                <div class="relative w-full">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" oninput="renderEvents()" placeholder="Buscar sala, artista o estilo..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-pink-500 transition-colors">
+                </div>
+            </div>
+        </div>
+
+        <!-- TABS NAVIGATION -->
+        <div class="flex space-x-3 mb-6 border-b border-slate-800 pb-4">
+            <button onclick="switchTab('upcoming')" id="tabUpcoming" class="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/20 flex items-center space-x-2">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Próximos Eventos</span>
+            </button>
+            <button onclick="switchTab('past')" id="tabPast" class="px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-slate-900 text-slate-400 hover:text-white border border-slate-800 flex items-center space-x-2">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Eventos Concluídos</span>
+            </button>
+        </div>
+
+        <!-- EVENTS GRID -->
+        <div id="eventsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Tarjetas inyectadas dinámicamente -->
+        </div>
+
+        <!-- EMPTY STATE -->
+        <div id="emptyState" class="hidden text-center py-16">
+            <div class="inline-block p-4 rounded-full bg-slate-800/50 text-slate-500 mb-4 text-3xl">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <h3 id="emptyTitle" class="text-lg font-medium text-slate-300">No hay eventos próximos</h3>
+            <p id="emptyDesc" class="text-sm text-slate-500 mt-1">Añade una nueva fecha a la agenda usando el botón superior.</p>
+        </div>
+    </main>
+
+    <!-- MODAL NUEVO EVENTO -->
+    <div id="eventModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-lg rounded-2xl p-6 border border-slate-700 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white flex items-center space-x-2">
+                    <i class="fa-solid fa-calendar-plus text-pink-500"></i>
+                    <span>Nuevo Evento We Love The Remember</span>
+                </h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="eventForm" onsubmit="saveEvent(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Nombre del Evento / Fiesta *</label>
+                    <input type="text" id="eventName" required placeholder="Ej: We Love The Remember Festival" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Fecha *</label>
+                        <input type="date" id="eventDate" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Hora *</label>
+                        <input type="time" id="eventTime" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Ubicación / Sala *</label>
+                        <input type="text" id="eventLocation" required placeholder="Ej: Sala / Ciudad / Local" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Estilo Musical</label>
+                        <select id="eventGenre" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500">
+                            <option value="Remember 90s/00s">Remember 90s/00s</option>
+                            <option value="Eurodance">Eurodance</option>
+                            <option value="Bakalao / Ruta">Bakalao / Ruta</option>
+                            <option value="Techno / Trance">Techno / Trance</option>
+                            <option value="Pop / Indie">Pop / Indie</option>
+                            <option value="Variado">Variado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">DJs / Artistas / Descripción</label>
+                    <textarea id="eventDescription" rows="3" placeholder="Line-up de artistas, detalles de entradas, horarios..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 resize-none"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Añadido por *</label>
+                    <select id="eventAuthor" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500">
+                        <option value="" disabled selected>Selecciona quién añade el evento...</option>
+                        <option value="Jhon">Jhon</option>
+                        <option value="Cristian">Cristian</option>
+                        <option value="Jesús">Jesús</option>
+                    </select>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" onclick="closeModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" id="submitBtn" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-pink-500/25">
+                        Guardar Evento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800 bg-slate-950/50 py-6 mt-12 text-center text-xs text-slate-500">
+        <p>Eventos We Love The Remember &copy; 2026 — Sintonía y Pasión por el Remember</p>
+    </footer>
+
+    <!-- LOGIC SCRIPT -->
+    <script>
+        let allEvents = [];
+        let currentTab = 'upcoming'; // 'upcoming' o 'past'
+        let countdownInterval = null;
+
+        window.openModal = function() {
+            document.getElementById('eventModal').classList.remove('hidden');
+        }
+
+        window.closeModal = function() {
+            document.getElementById('eventModal').classList.add('hidden');
+            document.getElementById('eventForm').reset();
+        }
+
+        window.switchTab = function(tab) {
+            currentTab = tab;
+            const btnUpcoming = document.getElementById('tabUpcoming');
+            const btnPast = document.getElementById('tabPast');
+
+            if (tab === 'upcoming') {
+                btnUpcoming.className = "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-500/20 flex items-center space-x-2";
+                btnPast.className = "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-slate-900 text-slate-400 hover:text-white border border-slate-800 flex items-center space-x-2";
+            } else {
+                btnPast.className = "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-slate-800 text-white shadow-lg border border-slate-700 flex items-center space-x-2";
+                btnUpcoming.className = "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all bg-slate-900 text-slate-400 hover:text-white border border-slate-800 flex items-center space-x-2";
+            }
+            renderEvents();
+        }
+
+        function loadEvents() {
+            const saved = localStorage.getItem('welove_remember_events');
+            if (saved) {
+                allEvents = JSON.parse(saved);
+            } else {
+                allEvents = [
+                    {
+                        id: 'demo-1',
+                        name: 'We LOVE The Remember - Opening Party',
+                        date: '2026-11-15',
+                        time: '17:00',
+                        location: 'Complejo Playa Park / Ciudad Real',
+                        genre: 'Remember 90s/00s',
+                        description: 'La gran fiesta del recuerdo con los mejores temas de nuestra época dorada.',
+                        author: 'Cristian'
+                    }
+                ];
+                saveToStorage();
+            }
+            renderEvents();
+            startCountdowns();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('welove_remember_events', JSON.stringify(allEvents));
+            renderEvents();
+            startCountdowns();
+        }
+
+        window.saveEvent = function(e) {
+            e.preventDefault();
+            
+            const newEvent = {
+                id: 'evt_' + Date.now(),
+                name: document.getElementById('eventName').value,
+                date: document.getElementById('eventDate').value,
+                time: document.getElementById('eventTime').value,
+                location: document.getElementById('eventLocation').value,
+                genre: document.getElementById('eventGenre').value,
+                description: document.getElementById('eventDescription').value,
+                author: document.getElementById('eventAuthor').value
+            };
+
+            allEvents.push(newEvent);
+            allEvents.sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+
+            saveToStorage();
+            closeModal();
+        }
+
+        window.deleteEvent = function(id) {
+            if (confirm('¿Estás seguro de que deseas eliminar este evento permanentemente de la agenda?')) {
+                allEvents = allEvents.filter(ev => ev.id !== id);
+                saveToStorage();
+            }
+        }
+
+        function renderEvents() {
+            const container = document.getElementById('eventsContainer');
+            const emptyState = document.getElementById('emptyState');
+            const emptyTitle = document.getElementById('emptyTitle');
+            const emptyDesc = document.getElementById('emptyDesc');
+            const upcomingCountEl = document.getElementById('upcomingCount');
+            const pastCountEl = document.getElementById('pastCount');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            const now = new Date().getTime();
+
+            const upcomingList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() >= now);
+            const pastList = allEvents.filter(ev => new Date(ev.date + 'T' + ev.time).getTime() < now);
+
+            upcomingCountEl.innerText = upcomingList.length;
+            pastCountEl.innerText = pastList.length;
+
+            let activeList = currentTab === 'upcoming' ? upcomingList : pastList;
+            if (searchTerm) {
+                activeList = activeList.filter(ev => 
+                    ev.name.toLowerCase().includes(searchTerm) ||
+                    ev.location.toLowerCase().includes(searchTerm) ||
+                    ev.genre.toLowerCase().includes(searchTerm) ||
+                    ev.description.toLowerCase().includes(searchTerm) ||
+                    ev.author.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            if (activeList.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                if (currentTab === 'upcoming') {
+                    emptyTitle.innerText = "No hay eventos próximos";
+                    emptyDesc.innerText = "Añade una nueva fecha a la agenda usando el botón superior.";
+                } else {
+                    emptyTitle.innerText = "No hay eventos concluídos";
+                    emptyDesc.innerText = "Los eventos pasarán aquí automáticamente una vez superada su fecha.";
+                }
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.innerHTML = '';
+
+            activeList.forEach(ev => {
+                const dateObj = new Date(ev.date + 'T00:00:00');
+                const formattedDate = dateObj.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+                const isPast = currentTab === 'past';
+
+                const card = document.createElement('div');
+                card.className = `glass-card rounded-2xl p-5 flex flex-col justify-between border ${isPast ? 'border-slate-800 opacity-80' : 'border-slate-700/60 hover:border-pink-500/50'} transition-all duration-300 shadow-xl group`;
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start gap-2 mb-3">
+                            <span class="${isPast ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-pink-500/10 text-pink-400 border-pink-500/20'} border text-xs font-semibold px-3 py-1 rounded-full">
+                                ${ev.genre}
+                            </span>
+                            <button onclick="deleteEvent('${ev.id}')" class="bg-slate-800/80 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-slate-700 transition-colors px-2.5 py-1 rounded-lg text-xs flex items-center space-x-1.5" title="Eliminar evento">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>Suprimir</span>
+                            </button>
+                        </div>
+                        
+                        <h3 class="text-lg font-bold text-white ${!isPast ? 'group-hover:text-pink-400' : ''} transition-colors mb-2">
+                            ${ev.name}
+                        </h3>
+
+                        <div class="space-y-2 text-sm text-slate-300 mb-4">
+                            <div class="flex items-center space-x-2.5">
+                                <i class="fa-regular fa-calendar text-pink-400 w-4 text-center"></i>
+                                <span class="capitalize">${formattedDate}</span>
+                            </div>
+                            <div class="flex items-center space-x-2.5">
+                                <i class="fa-regular fa-clock text-purple-400 w-4 text-center"></i>
+                                <span>${ev.time} h</span>
+                            </div>
+                            <div class="flex items-center space-x-2.5">
+                                <i class="fa-solid fa-location-dot text-cyan-400 w-4 text-center"></i>
+                                <span class="truncate">${ev.location}</span>
+                            </div>
+                        </div>
+
+                        ${isPast ? `
+                            <div class="bg-slate-900/50 border border-slate-800/80 rounded-xl p-3 mb-4 text-center text-xs text-slate-400">
+                                <i class="fa-solid fa-circle-check text-slate-500 mr-1"></i> Evento Concluído / Finalizado
+                            </div>
+                        ` : `
+                            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3 mb-4 text-center">
+                                <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400 mb-1">
+                                    <i class="fa-solid fa-hourglass-start text-pink-500 mr-1"></i> Cuenta Atrás para el Evento
+                                </div>
+                                <div id="countdown-${ev.id}" class="text-sm font-extrabold text-cyan-400 font-mono">
+                                    Calculando...
+                                </div>
+                            </div>
+                        `}
+
+                        ${ev.description ? `<p class="text-xs text-slate-400 bg-slate-900/60 p-3 rounded-xl mb-4 border border-slate-800 line-clamp-3">${ev.description}</p>` : ''}
+                    </div>
+
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-800/80 text-xs text-slate-500">
+                        <span>Añadido por: <strong class="text-pink-400">${ev.author}</strong></span>
+                        <span class="${isPast ? 'text-slate-400' : 'text-emerald-400'}"><i class="fa-solid fa-circle text-[6px] mr-1"></i> ${isPast ? 'Histórico' : 'Guardado'}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function startCountdowns() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                let needsRerender = false;
+
+                allEvents.forEach(ev => {
+                    const eventTime = new Date(ev.date + 'T' + ev.time).getTime();
+                    const diff = eventTime - now;
+
+                    if (diff <= 0 && currentTab === 'upcoming') {
+                        needsRerender = true;
+                    }
+
+                    const el = document.getElementById(`countdown-${ev.id}`);
+                    if (!el) return;
+
+                    if (diff <= 0) {
+                        el.innerHTML = "<span class='text-pink-400'>¡Finalizado!</span>";
+                        return;
+                    }
+
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    el.innerHTML = `${days}d ${hours}h ${minutes}m <span class="text-pink-400">${seconds}s</span>`;
+                });
+
+                if (needsRerender) {
+                    renderEvents();
+                }
+            }, 1000);
+        }
+
+        // Inicializar aplicación
+        loadEvents();
+    </script>
+</body>
+</html>
